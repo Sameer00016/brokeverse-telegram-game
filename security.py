@@ -20,6 +20,5 @@ def anti_tap(user):
 
     return True
 
-
 def can_claim(user):
-    return time.time() - user["last_claim"] >= 86400
+    return time.time() - user.get("last_claim", 0) >= 86400
