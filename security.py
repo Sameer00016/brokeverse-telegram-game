@@ -1,24 +1,20 @@
 import time
+from config import MAX_TAPS_PER_SECOND, DAILY_CLAIM_COOLDOWN
+
+_last_tap = {}
 
 def anti_tap(user):
+    uid = id(user)
     now = time.time()
-
-    if "last_tap" not in user:
-        user["last_tap"] = now
-        user["tap_count"] = 1
-        return True
-
-    if now - user["last_tap"] < 1:
-        user["tap_count"] += 1
-    else:
-        user["tap_count"] = 1
-        user["last_tap"] = now
-
-    if user["tap_count"] > 5:
-        user["warnings"] += 1
-        return False
-
+    if uid in _last_tap:
+        if now - _last_tap[uid] < (1 / MAX_TAPS_PER_SECOND):
+            user["warnings"] += 1
+            if user["warnings"] > 10:
+                user["banned"] = True
+            return False
+    _last_tap[uid] = now
     return True
 
+
 def can_claim(user):
-    return time.time() - user.get("last_claim", 0) >= 86400
+    return time.time() - user["last_claim"] >= DAILY_CLAIM_COOLDOWN
