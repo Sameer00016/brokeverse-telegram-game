@@ -160,7 +160,7 @@ def run_bot():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(router))
     print("✅ BROKEVERSE BOT RUNNING")
-    application.run_polling()
+   application.run_polling(close_loop=False)
 
 if __name__ == "__main__":
     threading.Thread(target=run_web).start()
