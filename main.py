@@ -2,7 +2,7 @@ import json, time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-from config import *
+from config import BOT_TOKEN
 from levels import LEVELS, TAP_UPGRADES, CLAIM_UPGRADES
 from security import anti_tap, can_claim
 
@@ -22,8 +22,9 @@ DB = load_db()
 
 # ---------------- USER ----------------
 def get_user(uid):
-    if str(uid) not in DB:
-        DB[str(uid)] = {
+    uid = str(uid)
+    if uid not in DB:
+        DB[uid] = {
             "points": 0,
             "level": 1,
             "tap_level": 1,
@@ -32,9 +33,9 @@ def get_user(uid):
             "warnings": 0,
             "banned": False
         }
-    return DB[str(uid)]
+    return DB[uid]
 
-# ---------------- LEVELS ----------------
+# ---------------- LEVEL ----------------
 def update_level(user):
     for lvl, req in LEVELS.items():
         if user["points"] >= req:
@@ -49,10 +50,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("🎁 Daily Claim", callback_data="claim")],
         [InlineKeyboardButton("🏆 Leaderboard", callback_data="leaderboard")],
         [InlineKeyboardButton("🔧 Upgrade Tap", callback_data="upgrade_tap")],
-        [InlineKeyboardButton("💎 Upgrade Claim", callback_data="upgrade_claim")],
+        [InlineKeyboardButton("💎 Upgrade Claim", callback_data="upgrade_claim")]
     ]
     await update.message.reply_text(
-        "🔥 Welcome to BROKEVERSE\nTap, Claim, Upgrade & reach luxury!",
+        "🔥 Welcome to BROKEVERSE\nTap • Upgrade • Escape Poverty",
         reply_markup=InlineKeyboardMarkup(kb)
     )
 
@@ -60,13 +61,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def tap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     user = get_user(q.from_user.id)
+
     if user["banned"]:
         await q.answer("⛔ You are banned.")
         return
+
     if not anti_tap(user):
         await q.answer("⚠️ Slow down!")
         save_db()
         return
+
     points = TAP_UPGRADES.get(user["tap_level"], 1)
     user["points"] += points
     update_level(user)
@@ -77,56 +81,57 @@ async def tap(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     user = get_user(q.from_user.id)
+
     if not can_claim(user):
         await q.answer("⏳ Come back tomorrow.")
         return
-    reward = CLAIM_UPGRADES.get(user["claim_level"], user["level"]*1000)
+
+    reward = CLAIM_UPGRADES.get(user["claim_level"], 1000)
     user["points"] += reward
     user["last_claim"] = time.time()
     update_level(user)
     save_db()
-    await q.answer(f"🎁 You claimed {reward} points!")
+    await q.answer(f"🎁 +{reward} points!")
 
 # ---------------- LEADERBOARD ----------------
 async def leaderboard(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     top = sorted(DB.items(), key=lambda x: x[1]["points"], reverse=True)[:10]
     text = "🏆 Leaderboard\n\n"
-    for i, (uid, u) in enumerate(top, 1):
-        text += f"{i}. {u['points']} pts (Lvl {u['level']})\n"
+    for i, (_, u) in enumerate(top, 1):
+        text += f"{i}. {u['points']} pts | Lvl {u['level']}\n"
     await q.message.reply_text(text)
 
-# ---------------- UPGRADE TAP ----------------
+# ---------------- UPGRADES ----------------
 async def upgrade_tap(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     user = get_user(q.from_user.id)
     if user["tap_level"] >= 50:
-        await q.answer("Max tap level reached!")
+        await q.answer("Max tap level!")
         return
-    cost = (user["tap_level"]*500)  # points cost
+    cost = user["tap_level"] * 500
     if user["points"] < cost:
-        await q.answer(f"Not enough points! Need {cost}")
+        await q.answer(f"Need {cost} points")
         return
     user["points"] -= cost
     user["tap_level"] += 1
     save_db()
-    await q.answer(f"Tap upgraded to {user['tap_level']}!")
+    await q.answer("Tap upgraded!")
 
-# ---------------- UPGRADE CLAIM ----------------
 async def upgrade_claim(update: Update, context: ContextTypes.DEFAULT_TYPE):
     q = update.callback_query
     user = get_user(q.from_user.id)
     if user["claim_level"] >= 50:
-        await q.answer("Max claim level reached!")
+        await q.answer("Max claim level!")
         return
-    cost = (user["claim_level"]*500)  # points cost
+    cost = user["claim_level"] * 500
     if user["points"] < cost:
-        await q.answer(f"Not enough points! Need {cost}")
+        await q.answer(f"Need {cost} points")
         return
     user["points"] -= cost
     user["claim_level"] += 1
     save_db()
-    await q.answer(f"Claim upgraded to {user['claim_level']}!")
+    await q.answer("Claim upgraded!")
 
 # ---------------- ROUTER ----------------
 async def router(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -139,10 +144,10 @@ async def router(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # ---------------- RUN ----------------
 if not BOT_TOKEN:
-    print("❌ ERROR: BOT_TOKEN not found in environment variables!")
+    print("❌ BOT_TOKEN missing")
 else:
     app = Application.builder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(router))
-    print("✅ BROKEVERSE bot started successfully!")
+    print("✅ BROKEVERSE BOT RUNNING")
     app.run_polling()
