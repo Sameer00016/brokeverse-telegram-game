@@ -1,18 +1,21 @@
+# Points required per level
 LEVELS = {
     1: 0,
-    2: 50000,
-    3: 200000,
-    4: 500000,
-    5: 1000000,
-    6: 2500000,
-    7: 5000000,
-    8: 8000000,
-    9: 10000000,   # Luxury unlocks start here
-    10: 20000000
+    2: 1_000,
+    3: 5_000,
+    4: 20_000,
+    5: 100_000,
+    6: 500_000,
+    7: 1_000_000,
+    8: 5_000_000,
+    9: 10_000_000,
+    10: 20_000_000
 }
 
-# Tap upgrade multiplier
-TAP_UPGRADES = {i: i*1 for i in range(1, 51)}  # Level 1 → 1 tap, Level 50 → 50 taps
+# Tap upgrade rewards (level → points per tap)
+TAP_UPGRADES = {i: i for i in range(1, 51)}
 
-# Daily claim upgrade multiplier
-CLAIM_UPGRADES = {i: i*1000 for i in range(1, 51)}  # Level 1 → 1000 pts, Level 50 → 50k pts
+# Daily claim rewards
+CLAIM_UPGRADES = {
+    i: i * 1000 for i in range(1, 51)
+}
