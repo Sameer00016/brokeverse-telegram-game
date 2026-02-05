@@ -1,10 +1,22 @@
+import threading
 import json, time
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 from config import BOT_TOKEN
 from levels import LEVELS, TAP_UPGRADES, CLAIM_UPGRADES
 from security import anti_tap, can_claim
+
+# ---------------- KEEP ALIVE SERVER ----------------
+app_web = Flask(__name__)
+
+@app_web.route("/")
+def home():
+    return "BROKEVERSE BOT IS RUNNING"
+
+def run_web():
+    app_web.run(host="0.0.0.0", port=8080)
 
 # ---------------- DATABASE ----------------
 def load_db():
@@ -143,11 +155,13 @@ async def router(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "upgrade_claim": await upgrade_claim(update, context)
 
 # ---------------- RUN ----------------
-if not BOT_TOKEN:
-    print("❌ BOT_TOKEN missing")
-else:
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(router))
+def run_bot():
+    application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(router))
     print("✅ BROKEVERSE BOT RUNNING")
-    app.run_polling()
+    application.run_polling()
+
+if __name__ == "__main__":
+    threading.Thread(target=run_web).start()
+    run_bot()
